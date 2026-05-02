@@ -1,0 +1,45 @@
+name: todo_app
+description: "A new Flutter project."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.4
+
+dependencies:
+  flutter:
+    sdk: flutter
+    
+
+  cupertino_icons: ^1.0.8
+  firebase_core: ^4.7.0
+  firebase_auth: ^6.4.0
+  cloud_firestore: ^6.3.0
+  provider: ^6.0.5
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/
+
+  # ---------- OPTIONAL SECTIONS (kept for future use) ----------
+
+  # fonts:
+  #   - family: ExampleFont
+  #     fonts:
+  #       - asset: assets/fonts/Example-Regular.ttf
+  #       - asset: assets/fonts/Example-Bold.ttf
+  #         weight: 700
+
+  # assets:
+  #   - assets/images/
+  #   - assets/icons/
+
+  # To add more assets later, just list them above
