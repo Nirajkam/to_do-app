@@ -9,43 +9,27 @@ class RegisterPage extends StatefulWidget {
 }
 
 class _RegisterPageState extends State<RegisterPage> {
-  FocusNode _focusNode1 = new FocusNode();
-  FocusNode _focusNode2 = new FocusNode();
-  FocusNode _focusNode3 = new FocusNode();
-  FocusNode _focusNode4 = new FocusNode();
-  ValueNotifier<bool> toggle = ValueNotifier<bool>(true);
+  // 1. Controllers
+  final name = TextEditingController();
+  final email = TextEditingController();
+  final password = TextEditingController();
+  final confirmpassword = TextEditingController();
 
-  final name = new TextEditingController();
-  final email = new TextEditingController();
-  final password = new TextEditingController();
-  final confirmpassword = new TextEditingController();
-  @override
-  void initState() {
-    super.initState();
+  // 2. States for hiding/showing BOTH passwords
+  final ValueNotifier<bool> togglePassword = ValueNotifier<bool>(true);
+  final ValueNotifier<bool> toggleConfirmPassword = ValueNotifier<bool>(true);
 
-    _focusNode1.addListener(() {
-      setState(() {});
-    });
-
-    _focusNode2.addListener(() {
-      setState(() {});
-    });
-
-    _focusNode3.addListener(() {
-      setState(() {});
-    });
-
-    _focusNode4.addListener(() {
-      setState(() {});
-    });
-  }
+  // 3. NO MORE FocusNodes! NO MORE initState!
 
   @override
   void dispose() {
+    // 4. Dispose EVERYTHING
     name.dispose();
     email.dispose();
     password.dispose();
     confirmpassword.dispose();
+    togglePassword.dispose();
+    toggleConfirmPassword.dispose();
     super.dispose();
   }
 
@@ -57,38 +41,36 @@ class _RegisterPageState extends State<RegisterPage> {
         child: SingleChildScrollView(
           child: Column(
             children: [
-              SizedBox(height: 20),
-              image(),
-              SizedBox(height: 50),
+              const SizedBox(height: 20),
+              const image(),
+              const SizedBox(height: 50),
+
               textfield(
                 controller: name,
-                focusNode: _focusNode1,
                 hint: 'Name',
-                icon: Icons.supervised_user_circle_outlined,
+                icon: Icons.person_outline,
               ),
-              SizedBox(height: 10),
-              textfield(
-                controller: email,
-                focusNode: _focusNode2,
-                hint: 'Email',
-                icon: Icons.email,
-              ),
-              SizedBox(height: 10),
+              const SizedBox(height: 10),
+
+              textfield(controller: email, hint: 'Email', icon: Icons.email),
+              const SizedBox(height: 10),
+
               passwords(
                 controller: password,
-                focusNode: _focusNode3,
-                hint: 'password',
+                hint: 'Password',
                 icon: Icons.password,
+                toggle: togglePassword,
               ),
-              SizedBox(height: 10),
+              const SizedBox(height: 10),
+
               passwords(
                 controller: confirmpassword,
-                focusNode: _focusNode4,
-                hint: 'Confirm_password',
+                hint: 'Confirm Password',
                 icon: Icons.password,
+                toggle: toggleConfirmPassword,
               ),
+              const SizedBox(height: 10),
 
-              SizedBox(height: 10),
               sigup_button(context),
               register_button(
                 Name: name,
@@ -111,18 +93,21 @@ Widget sigup_button(BuildContext context) {
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
         Text(
-          "Already Have a account",
+          "Already have an account? ",
           style: TextStyle(color: Colors.grey[700], fontSize: 14),
         ),
-
         GestureDetector(
           onTap: () => Navigator.pushReplacementNamed(context, '/login'),
           child: Text(
-            "login",
-            style: TextStyle(color: Colors.blue[700], fontSize: 14),
+            "Login",
+            style: TextStyle(
+              color: Colors.blue[700],
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
-        SizedBox(width: 5),
+        const SizedBox(width: 5),
       ],
     ),
   );
@@ -150,17 +135,18 @@ Widget register_button({
           final email = Email.text.trim();
           final password = Password.text.trim();
           final confirmPassword = Repassword.text.trim();
+
           if (password != confirmPassword) {
             print("Passwords do not match!");
             return;
           }
+
           final reg = Registor(name: name, email: email, password: password);
           String message = await reg.registerdb();
           print(message);
         },
-
-        child: Text(
-          'Login',
+        child: const Text(
+          'Register',
           style: TextStyle(
             color: Colors.white,
             fontSize: 23,
@@ -174,7 +160,6 @@ Widget register_button({
 
 Widget textfield({
   required TextEditingController controller,
-  required FocusNode focusNode,
   required String hint,
   required IconData icon,
 }) {
@@ -187,7 +172,6 @@ Widget textfield({
       ),
       child: TextField(
         controller: controller,
-        focusNode: focusNode,
         style: const TextStyle(fontSize: 18, color: Colors.black),
         decoration: InputDecoration(
           prefixIcon: Icon(icon),
@@ -212,15 +196,13 @@ Widget textfield({
 
 Widget passwords({
   required TextEditingController controller,
-  required FocusNode focusNode,
   required String hint,
   required IconData icon,
+  required ValueNotifier<bool> toggle,
 }) {
-  ValueNotifier<bool> toggle = ValueNotifier<bool>(true);
-
-  return ValueListenableBuilder(
+  return ValueListenableBuilder<bool>(
     valueListenable: toggle,
-    builder: (context, value, child) {
+    builder: (context, isObscured, child) {
       return Padding(
         padding: const EdgeInsets.symmetric(horizontal: 15),
         child: Container(
@@ -229,10 +211,8 @@ Widget passwords({
             borderRadius: BorderRadius.circular(15),
           ),
           child: TextField(
-            obscureText: toggle.value,
-
+            obscureText: isObscured,
             controller: controller,
-            focusNode: focusNode,
             style: const TextStyle(fontSize: 18, color: Colors.black),
             decoration: InputDecoration(
               prefixIcon: Icon(icon),
@@ -241,9 +221,8 @@ Widget passwords({
                   toggle.value = !toggle.value;
                 },
                 child: Icon(
-                  toggle.value
-                      ? Icons.visibility
-                      : Icons.visibility_off_outlined,
+                  isObscured ? Icons.visibility : Icons.visibility_off_outlined,
+                  color: Colors.grey,
                 ),
               ),
               contentPadding: const EdgeInsets.symmetric(
@@ -283,7 +262,7 @@ class image extends StatelessWidget {
       child: Container(
         width: double.infinity,
         height: 300,
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           image: DecorationImage(
             image: AssetImage("assets/images/register.png"),
             fit: BoxFit.cover,

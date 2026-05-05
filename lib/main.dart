@@ -1,10 +1,13 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:todo_app/firebase_options.dart';
 import 'package:todo_app/page/home.dart';
 import 'package:todo_app/page/loginpage.dart';
 import 'package:todo_app/page/registerpage.dart';
 import 'package:todo_app/page/task.dart';
+import 'package:todo_app/provider/Dropdown_provider.dart';
+import 'package:todo_app/provider/time&date.dart';
 import 'package:todo_app/route_generator.dart';
 
 void main() async {
@@ -12,10 +15,17 @@ void main() async {
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(
-    MaterialApp(
-      debugShowCheckedModeBanner: false,
-      initialRoute: '/',
-      onGenerateRoute: RouteGenerator.generateRoute,
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => DropdownProvider()),
+        ChangeNotifierProvider(create: (_) => date()),
+      ],
+
+      child: MaterialApp(
+        debugShowCheckedModeBanner: false,
+        initialRoute: '/',
+        onGenerateRoute: RouteGenerator.generateRoute,
+      ),
     ),
   );
 }

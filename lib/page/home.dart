@@ -1,7 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:todo_app/page/task.dart';
+import 'package:todo_app/provider/Dropdown_provider.dart';
+import 'package:todo_app/provider/time&date.dart';
 
 class Home extends StatefulWidget {
   @override
@@ -35,7 +38,28 @@ class _HomeState extends State<Home> {
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () async {
-              await FirebaseAuth.instance.signOut();
+              showDialog(
+                context: context,
+                builder: (builder) => AlertDialog(
+                  title: Text("Do you want to logout"),
+                  actions: [
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.pop(context);
+                      },
+                      child: Text("Cancel"),
+                    ),
+                    SizedBox(width: 20),
+                    GestureDetector(
+                      onTap: () async {
+                        await FirebaseAuth.instance.signOut();
+                        Navigator.pop(context);
+                      },
+                      child: Text("Ok", style: TextStyle(color: Colors.red)),
+                    ),
+                  ],
+                ),
+              );
             },
           ),
         ],
@@ -67,47 +91,121 @@ class _HomeState extends State<Home> {
 
 void openTask(BuildContext context) {
   TextEditingController taskController = TextEditingController();
+
   TextEditingController descController = TextEditingController();
+
+  context.read<DropdownProvider>().clear();
+  context.read<date>().clear();
 
   showDialog(
     context: context,
     builder: (context) => AlertDialog(
       title: const Text("Add new item"),
-      content: Column(
-        mainAxisSize: MainAxisSize
-            .min, // FIX 4: Prevents the dialog from being full-screen height
-        children: [
-          TextField(
-            controller: taskController,
-            decoration: const InputDecoration(hintText: "Task Title"),
-          ),
-          const SizedBox(height: 10),
-          TextField(
-            controller: descController,
-            decoration: const InputDecoration(hintText: "Description"),
-          ),
-        ],
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize
+              .max, // FIX 4: Prevents the dialog from being full-screen height
+          children: [
+            TextField(
+              controller: taskController,
+              decoration: const InputDecoration(hintText: "Task Title"),
+            ),
+            const SizedBox(height: 10),
+            Consumer<DropdownProvider>(
+              builder: (context, provider, child) {
+                return DropdownButton<int>(
+                  hint: Text('Select priority'),
+                  value: provider.selectedValue,
+                  items: provider.options.entries.map((entry) {
+                    return DropdownMenuItem<int>(
+                      value: entry.value, // 1,2,3
+                      child: Text(entry.key), // label
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    if (value != null) {
+                      provider.setItem(value);
+                    }
+                  },
+                );
+              },
+            ),
+            SizedBox(height: 30),
+            Consumer<date>(
+              builder: (context, provider, child) {
+                return ElevatedButton(
+                  onPressed: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: DateTime.now(),
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime(2100),
+                    );
+
+                    if (picked != null) {
+                      provider.setDate(picked);
+                    }
+                  },
+                  child: Text(
+                    provider.selectedDate == null
+                        ? "Select Date"
+                        : provider.selectedDate!.toString().split(" ")[0],
+                  ),
+                );
+              },
+            ),
+            Consumer<date>(
+              builder: (context, provider, child) {
+                return ElevatedButton(
+                  onPressed: () async {
+                    final picked = await showTimePicker(
+                      context: context,
+                      initialTime: TimeOfDay.now(),
+                    );
+
+                    if (picked != null) {
+                      provider.setTime(picked);
+                    }
+                  },
+                  child: Text(
+                    provider.selectedTime == null
+                        ? "Select Time"
+                        : provider.selectedTime!.format(context),
+                  ),
+                );
+              },
+            ),
+            TextField(
+              controller: descController,
+              decoration: const InputDecoration(hintText: "Description"),
+            ),
+          ],
+        ),
       ),
       actions: [
         TextButton(
           onPressed: () {
-            Navigator.pop(context); // Cancel button just closes the dialog
+            Navigator.pop(context);
           },
           child: const Text("Cancel", style: TextStyle(color: Colors.red)),
         ),
         TextButton(
           onPressed: () async {
-            // Check if title is empty before saving
+            final provider = context.read<DropdownProvider>();
+            final dateTimeProvider = context.read<date>();
+
+            final taskDateTime = dateTimeProvider.combinedDateTime;
             if (taskController.text.trim().isEmpty) return;
 
-            // FIX 3: Save to Firestore ONLY when they click Submit!
             try {
               await FirebaseFirestore.instance.collection("Task").add({
                 "title": taskController.text.trim(),
                 "description": descController.text.trim(),
                 "date": FieldValue.serverTimestamp(),
                 "creator": FirebaseAuth.instance.currentUser!.uid,
+                'dateTime': taskDateTime,
                 "isdone": false,
+                "priority": provider.selectedValue,
               });
             } on FirebaseException catch (e) {
               print(e.message);
@@ -123,7 +221,6 @@ void openTask(BuildContext context) {
   );
 }
 
-// I also cleaned this up for you for when you are ready to use it!
 void deletetask(BuildContext context, String taskId) {
   showDialog(
     context: context,

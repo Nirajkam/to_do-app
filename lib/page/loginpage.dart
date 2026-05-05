@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:todo_app/auth/reg&log.dart';
 
@@ -11,23 +9,22 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  FocusNode _focusNode1 = new FocusNode();
-  FocusNode _focusNode2 = new FocusNode();
+  // 1. Controllers
+  final email = TextEditingController();
+  final password = TextEditingController();
 
-  final email = new TextEditingController();
-  final password = new TextEditingController();
+  // 2. State for hiding/showing password
+  final ValueNotifier<bool> togglePassword = ValueNotifier<bool>(true);
+
+  // 3. NO MORE FocusNodes! NO MORE initState!
 
   @override
-  void initState() {
-    super.initState();
-
-    _focusNode1.addListener(() {
-      setState(() {});
-    });
-
-    _focusNode2.addListener(() {
-      setState(() {});
-    });
+  void dispose() {
+    // 4. Properly dispose of everything to prevent memory leaks!
+    email.dispose();
+    password.dispose();
+    togglePassword.dispose();
+    super.dispose();
   }
 
   @override
@@ -37,24 +34,28 @@ class _LoginPageState extends State<LoginPage> {
       body: SafeArea(
         child: SingleChildScrollView(
           child: Column(
-            children: [
-              SizedBox(height: 20),
-              image(),
-              SizedBox(height: 50),
+            children:[
+              const SizedBox(height: 20),
+              const image(),
+              const SizedBox(height: 50),
+              
+              // No FocusNodes passed here!
               textfield(
                 controller: email,
-                focusNode: _focusNode1,
                 hint: 'Email',
                 icon: Icons.email,
               ),
-              SizedBox(height: 10),
+              const SizedBox(height: 10),
+              
+              // Pass the toggle state here
               passwords(
                 controller: password,
-                focusNode: _focusNode2,
-                hint: 'password',
+                hint: 'Password',
                 icon: Icons.password,
+                toggle: togglePassword,
               ),
-              SizedBox(height: 10),
+              const SizedBox(height: 10),
+              
               sigup_button(context),
               login_button(Email: email, Password: password),
             ],
@@ -70,9 +71,9 @@ Widget sigup_button(BuildContext context) {
     padding: const EdgeInsets.symmetric(horizontal: 15),
     child: Row(
       mainAxisAlignment: MainAxisAlignment.end,
-      children: [
+      children:[
         Text(
-          "Don't have an account",
+          "Don't have an account? ",
           style: TextStyle(color: Colors.grey[700], fontSize: 14),
         ),
         GestureDetector(
@@ -81,10 +82,10 @@ Widget sigup_button(BuildContext context) {
           },
           child: Text(
             "Sign up",
-            style: TextStyle(color: Colors.blue[700], fontSize: 14),
+            style: TextStyle(color: Colors.blue[700], fontSize: 14, fontWeight: FontWeight.bold),
           ),
         ),
-        SizedBox(width: 5),
+        const SizedBox(width: 5),
       ],
     ),
   );
@@ -112,7 +113,7 @@ Widget login_button({
           String message = await log.logindb();
           print(message);
         },
-        child: Text(
+        child: const Text(
           'Login',
           style: TextStyle(
             color: Colors.white,
@@ -127,7 +128,6 @@ Widget login_button({
 
 Widget textfield({
   required TextEditingController controller,
-  required FocusNode focusNode,
   required String hint,
   required IconData icon,
 }) {
@@ -140,7 +140,6 @@ Widget textfield({
       ),
       child: TextField(
         controller: controller,
-        focusNode: focusNode,
         style: const TextStyle(fontSize: 18, color: Colors.black),
         decoration: InputDecoration(
           prefixIcon: Icon(icon),
@@ -165,15 +164,13 @@ Widget textfield({
 
 Widget passwords({
   required TextEditingController controller,
-  required FocusNode focusNode,
   required String hint,
   required IconData icon,
+  required ValueNotifier<bool> toggle, // Requires the state from above!
 }) {
-  ValueNotifier<bool> toggle = ValueNotifier<bool>(true);
-
-  return ValueListenableBuilder(
+  return ValueListenableBuilder<bool>(
     valueListenable: toggle,
-    builder: (context, value, child) {
+    builder: (context, isObscured, child) {
       return Padding(
         padding: const EdgeInsets.symmetric(horizontal: 15),
         child: Container(
@@ -182,10 +179,8 @@ Widget passwords({
             borderRadius: BorderRadius.circular(15),
           ),
           child: TextField(
-            obscureText: toggle.value,
-
+            obscureText: isObscured,
             controller: controller,
-            focusNode: focusNode,
             style: const TextStyle(fontSize: 18, color: Colors.black),
             decoration: InputDecoration(
               prefixIcon: Icon(icon),
@@ -194,9 +189,8 @@ Widget passwords({
                   toggle.value = !toggle.value;
                 },
                 child: Icon(
-                  toggle.value
-                      ? Icons.visibility
-                      : Icons.visibility_off_outlined,
+                  isObscured ? Icons.visibility : Icons.visibility_off_outlined,
+                  color: Colors.grey,
                 ),
               ),
               contentPadding: const EdgeInsets.symmetric(
@@ -236,7 +230,7 @@ class image extends StatelessWidget {
       child: Container(
         width: double.infinity,
         height: 300,
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           image: DecorationImage(
             image: AssetImage("assets/images/login.png"),
             fit: BoxFit.cover,
