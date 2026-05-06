@@ -79,14 +79,10 @@ class _TaskState extends State<Task> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.update, color: Colors.blue),
+                        icon: const Icon(Icons.edit, color: Colors.blue),
                         onPressed: () {
-                          IconButton(
-                            icon: const Icon(Icons.update, color: Colors.blue),
-                            onPressed: () {
-                              UpdateTask(context, doc.id, task);
-                            },
-                          );
+                          print("0. [DEBUG] Edit button tapped!");
+                          updateTaskDialog(context, doc.id, task);
                         },
                       ),
 
@@ -111,13 +107,14 @@ class _TaskState extends State<Task> {
   }
 }
 
-void UpdateTask(
+void updateTaskDialog(
   BuildContext context,
   String docId,
   Map<String, dynamic> currentData,
 ) {
+  print("1.[DEBUG] Edit button clicked for Task: ${currentData['title']}");
+
   try {
-    // 1. Pre-fill text fields safely
     TextEditingController taskController = TextEditingController(
       text: currentData['title']?.toString() ?? '',
     );
@@ -128,26 +125,34 @@ void UpdateTask(
     final dropdownProvider = context.read<DropdownProvider>();
     final dateProvider = context.read<date>();
 
-    // 2. Safely parse priority
+    // ==========================================
+    // SAFE PRIORITY PARSING (Fixes Dropdown crash)
+    // ==========================================
+    print("2. [DEBUG] Parsing Priority...");
     if (currentData['priority'] != null) {
       int? parsedPriority = int.tryParse(currentData['priority'].toString());
-      if (parsedPriority != null) {
+
+      // CHECK: Is this priority actually in our allowed list (1, 2, or 3)?
+      if (parsedPriority != null &&
+          dropdownProvider.options.containsValue(parsedPriority)) {
         dropdownProvider.setItem(parsedPriority);
+      } else {
+        dropdownProvider.clear(); // If it's an invalid number, clear it
       }
     } else {
       dropdownProvider.clear();
     }
 
-    // 3. Safely parse Date and Time
+    // ==========================================
+    // SAFE DATE/TIME PARSING
+    // ==========================================
+    print("3. [DEBUG] Parsing Date/Time...");
     if (currentData['dateTime'] != null) {
       DateTime? existingDate;
 
-      // Check if it's a Firestore Timestamp
       if (currentData['dateTime'] is Timestamp) {
         existingDate = (currentData['dateTime'] as Timestamp).toDate();
-      }
-      // Fallback if it somehow saved as a String
-      else if (currentData['dateTime'] is String) {
+      } else if (currentData['dateTime'] is String) {
         existingDate = DateTime.tryParse(currentData['dateTime']);
       }
 
@@ -161,10 +166,14 @@ void UpdateTask(
       dateProvider.clear();
     }
 
-    // 4. Open the Dialog
+    print("4. [DEBUG] Data loaded safely. Opening Dialog...");
+
+    // ==========================================
+    // OPEN THE DIALOG
+    // ==========================================
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text("Update Task"),
         content: SingleChildScrollView(
           child: Column(
@@ -176,7 +185,7 @@ void UpdateTask(
               ),
               const SizedBox(height: 10),
               Consumer<DropdownProvider>(
-                builder: (context, provider, child) {
+                builder: (_, provider, __) {
                   return DropdownButton<int>(
                     hint: const Text('Select priority'),
                     value: provider.selectedValue,
@@ -194,7 +203,7 @@ void UpdateTask(
               ),
               const SizedBox(height: 30),
               Consumer<date>(
-                builder: (context, provider, child) {
+                builder: (_, provider, __) {
                   return ElevatedButton(
                     onPressed: () async {
                       final picked = await showDatePicker(
@@ -208,13 +217,13 @@ void UpdateTask(
                     child: Text(
                       provider.selectedDate == null
                           ? "Select Date"
-                          : provider.selectedDate!.toString().split(" ")[0],
+                          : "${provider.selectedDate!.day}/${provider.selectedDate!.month}/${provider.selectedDate!.year}",
                     ),
                   );
                 },
               ),
               Consumer<date>(
-                builder: (context, provider, child) {
+                builder: (_, provider, __) {
                   return ElevatedButton(
                     onPressed: () async {
                       final picked = await showTimePicker(
@@ -240,7 +249,7 @@ void UpdateTask(
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text("Cancel", style: TextStyle(color: Colors.red)),
           ),
           TextButton(
@@ -262,14 +271,16 @@ void UpdateTask(
                 print("Error updating task: $e");
               }
 
-              if (context.mounted) Navigator.pop(context);
+              if (dialogContext.mounted) Navigator.pop(dialogContext);
             },
             child: const Text("Update"),
           ),
         ],
       ),
     );
-  } catch (e) {
+    print("5. [DEBUG] Dialog requested successfully.");
+  } catch (e, stacktrace) {
     print("CRASH BEFORE DIALOG OPENED: $e");
+    print(stacktrace);
   }
 }
